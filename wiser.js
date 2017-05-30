@@ -35,7 +35,6 @@ var Wiser = function(log, address, username, password, port) {
         var widgets = result.Project.Widgets[0]['widget'];
 
         for (var i = 0; i < widgets.length; i++ ) {
-          //  console.log(widgets[i].$);
           var params = widgets[i].params;
           var app = params[0].$.app;
           var ga = params[0].$.ga;
@@ -68,12 +67,12 @@ var Wiser = function(log, address, username, password, port) {
 
   Wiser.prototype.handleWiserData = function(data) {
     var resp = "<response>"+data.toString()+"</response>";
+    this.log.debug(resp);
     var dataParser = require('xml2js').parseString;
     dataParser(resp, function(err, result) {
       var event = result.response.cbus_event;
       var response = result.response.cbus_resp;
       if ('undefined' != typeof event) {
-        console.log('event:'+resp);
         event = event[0].$;
         var eventName = event.name;
 
@@ -92,9 +91,9 @@ var Wiser = function(log, address, username, password, port) {
       }
 
       if ('undefined' != typeof response) {
-        console.log('response:');
+        this.log.debug("Unknown response")
         var command = response[0].$.command;
-        console.log(response[0]);
+        this.log.debug(response[0]);
       }
     }.bind(this));
 
@@ -102,16 +101,16 @@ var Wiser = function(log, address, username, password, port) {
 
   Wiser.prototype.socketClosed = function(error) {
     if (error) {
-      console.log('Socket closed with error')
+      this.log.error('Socket closed with error')
     } else {
-      console.log('Socket closed');
+      this.log.error('Socket closed');
     }
 
   }
 
   Wiser.prototype.authenticate = function() {
       if ('undefined' == typeof this.authKey) {
-        console.log('AuthKey is not defined');
+        this.log.error('AuthKey is not defined');
       } else {
         this.socket.write('<cbus_auth_cmd value="'+this.authKey+'" cbc_version="3.7.0" count="0" />');
       }
@@ -127,7 +126,7 @@ var Wiser = function(log, address, username, password, port) {
     var cmd  = '<cbus_cmd app="56" command="cbusSetLevel" network="'+network+
     '" numaddresses="1" addresses="'+group+
     '" levels="'+level+'" ramps="'+ramp+'"/>';
-    console.log(cmd);
+    this.log.debug(cmd);
     this.socket.write(cmd)
   }
 
