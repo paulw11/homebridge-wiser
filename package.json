@@ -1,0 +1,25 @@
+{
+  "name": "homebridge-wiser",
+  "version": "0.1.0",
+  "description": "C-Bus Wiser plugin for homebridge: https://github.com/nfarina/homebridge",
+  "license": "MIT",
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/nfarina/homebridge-sonos.git"
+  },
+  "bugs": {
+    "url": "http://github.com/nfarina/homebridge-sonos/issues"
+  },
+  "engines": {
+    "node": ">=0.12.0",
+    "homebridge": ">=0.2.0"
+  },
+  "dependencies": {
+    "http": "*",
+    "request": "*",
+    "xml2js": "*"
+  }
+}
