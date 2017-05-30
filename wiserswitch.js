@@ -36,7 +36,7 @@ WiserSwitch.prototype._setOn = function(on, callback,context) {
   if (context === `event`) {
     callback()
   } else {
-    this.log("Setting switch to "+on);
+    this.log.debug("Setting switch to "+on);
     var level = 0;
     if (on) {
       level = 255;
