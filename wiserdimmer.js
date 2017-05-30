@@ -17,7 +17,6 @@ var WiserDimmer = function (homebridge, log, wiser, wisergroup) {
   }
   this.name = wisergroup.name;
   var id = wisergroup.name+":"+wisergroup.groupAddress;
-  this.log.info(this.id);
   this.uuid_base = id;
   this._isOn = false;
   this._onChar = this._service.getCharacteristic(Characteristic.On);

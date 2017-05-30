@@ -61,7 +61,6 @@ var Wiser = function(log, address, username, password, port) {
     this.authenticate();
     this.getLevels();
     this.log.info('discovery complete');
-      this.log.info('notifying discovery complete');
       this.emit(`discoveryComplete`,this);
   }
 
