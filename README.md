@@ -12,7 +12,7 @@ You can install the plug-in using `npm`:
 
 `sudo npm install -g homebridge-wiser`
 
-configuration
+Configuration
 -------------
 
 *homebridge-wiser* is added as a `platform` in your config.json:
