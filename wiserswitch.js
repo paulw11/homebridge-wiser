@@ -17,7 +17,6 @@ var WiserSwitch = function (homebridge, log, wiser, wisergroup) {
   }
   this.name = wisergroup.name;
   var id = wisergroup.name+":"+wisergroup.groupAddress;
-  this.log.info(this.id);
   this.uuid_base = id;
   this._onChar = this._service.getCharacteristic(Characteristic.On);
   this._onChar.on('set', this._setOn.bind(this));

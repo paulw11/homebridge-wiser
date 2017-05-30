@@ -45,7 +45,7 @@ function WiserPlatform(log, config, api) {
   }
 
   WiserPlatform.prototype.accessories = function(callback) {
-    this.log.info('setting discovery callback');
+    this.log.debug('setting discovery callback');
     this.wiser.on(`discoveryComplete`, function(wiser) {
       for (var key in wiser.wiserGroups) {
         var wiserswitch;
