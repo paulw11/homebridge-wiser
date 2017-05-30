@@ -1,6 +1,6 @@
 "use strict";
 
-var Accessory, Service, Characteristic, UUIDGen;
+var Accessory, Service, Characteristic, UUIDGen, Wiser, WiserSwitch, Homebridge;
 
 module.exports = function(homebridge) {
 
@@ -8,13 +8,16 @@ module.exports = function(homebridge) {
   UUIDGen = homebridge.hap.uuid;
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
+  Homebridge = homebridge;
+  WiserSwitch = require('./wiserswitch.js');
+  Wiser = require('./wiser.js');
 
-  homebridge.registerPlatform("homebridge-platform-wiser", "Wiser", WiserPlatform,true);
+  homebridge.registerPlatform('homebridge-platform-wiser', 'Wiser', WiserPlatform);
 }
 
 function WiserPlatform(log, config, api) {
   if (!config) {
-    log.warn("Ignoring Wiser platform setup because it is not configured");
+    log.warn('Ignoring Wiser platform setup because it is not configured');
     this.disabled = true;
     return;
   }
@@ -27,15 +30,27 @@ function WiserPlatform(log, config, api) {
   this.wiserPort = this.config.wiserPort;
 
   this.api = api;
+  this.wiserAccessories = [];
+  this.log = log;
 
-  Wiser = require('./wiser.js');
-
-  var wiser = new Wiser(this.wiserAddress,
+  this.wiser = new Wiser(this.log,this.wiserAddress,
      this.wiserUsername,
      this.wiserPassword,
      this.wiserPort);
 
-  wiser.connect();
-
+  log.info('Connecting to wiser');
+  this.wiser.start();
 
 }
+
+WiserPlatform.prototype.accessories = function(callback) {
+  this.log.info('setting discovery callback');
+  this.wiser.on(`discoveryComplete`, function(wiser) {
+    for (var key in wiser.wiserGroups) {
+      var wiserswitch = new WiserSwitch(Homebridge,this.log, wiser, wiser.wiserGroups[key]);
+      this.wiserAccessories.push(wiserswitch);
+    }
+    callback(this.wiserAccessories);
+  }.bind(this));
+
+};

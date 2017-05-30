@@ -1,26 +1,34 @@
 "use strict";
 
-var Wiser = function(address, username, password, port) {
+const WiserGroup = require('./wisergroup.js');
+const EventEmitter = require('events').EventEmitter;
+const util =require('util');
+
+var Wiser = function(log, address, username, password, port) {
+    this.log = log;
     this.address = address;
     this.username = username;
     this.password = password;
     this.port = port;
     this.request = require('request');
     this.wiserGroups = {};
-    thius.namedGroups = {};
+    this.namedGroups = {};
     this.socket = require('net').Socket();
   }
 
+  util.inherits(Wiser,EventEmitter);
+
   Wiser.prototype.start = function() {
-    var wiserURL = "http://"+this.username+":"+this.password+"@"+this.address+"/"
-    request(wiserURL+"clipsal/resources/projectorkey.xml", function (error, response, body) {
+    var wiserURL = "http://"+this.username+":"+this.password+"@"+this.address+"/";
+    this.request(wiserURL+"clipsal/resources/projectorkey.xml", function (error, response, body) {
       var authParser = require('xml2js').parseString;
+
       authParser(body, function(err,result) {
         this.authKey = result.cbus_auth_data.$.value;
-      });
-    });
+      }.bind(this));
+    }.bind(this));
 
-    request(wiserURL+"clipsal/resources/project.xml", function (error, response, body) {
+    this.request(wiserURL+"clipsal/resources/project.xml", function (error, response, body) {
       var configParser = require('xml2js').parseString;
 
       configParser(body, function(err, result) {
@@ -38,32 +46,34 @@ var Wiser = function(address, username, password, port) {
           "undefined" != typeof name) {
             var group = new WiserGroup(app,254,ga,name);
             group.dimmable = (widgets[i].$.type == '1');
-            wiserGroups[ga] = group;
+            this.wiserGroups[ga] = group;
+            this.namedGroups[group.name] = group;
           }
         }
-        socket.connect(this.port, this.address);
-        socket.on('connect', this.handleWiserConnection);
-        socket.on('data', this.handleWiserData);
-        socket.on('close', this.socketClosed);
-      });
+        this.socket.connect(this.port, this.address);
+        this.socket.on('connect', this.handleWiserConnection.bind(this));
+        this.socket.on('data', this.handleWiserData.bind(this));
+        this.socket.on('close', this.socketClosed.bind(this));
+      }.bind(this));
+    }.bind(this));
   }
 
   Wiser.prototype.handleWiserConnection = function () {
     this.authenticate();
     this.getLevels();
-    var study = namedGroups['Study'];
-    console.log('study is '+study);
-    //setGroupLevel(namedGroups['Study'],255,0);
+    this.log.info('discovery complete');
+      this.log.info('notifying discovery complete');
+      this.emit(`discoveryComplete`,this);
   }
 
-  Wiser.prototpe.handleWiserData = function(data) {
+  Wiser.prototype.handleWiserData = function(data) {
     var resp = "<response>"+data.toString()+"</response>";
     var dataParser = require('xml2js').parseString;
     dataParser(resp, function(err, result) {
       var event = result.response.cbus_event;
       var response = result.response.cbus_resp;
       if ('undefined' != typeof event) {
-        console.log('event:');
+        console.log('event:'+resp);
         event = event[0].$;
         var eventName = event.name;
 
@@ -71,8 +81,12 @@ var Wiser = function(address, username, password, port) {
             case 'cbusSetLevel':
                var group = parseInt(event.group);
                var level = parseInt(event.level);
-               var wiserGroup = wiserGroups[group];
-               wiserGroup.level = level;
+               var wiserGroup = this.wiserGroups[group];
+               if ('undefined' != typeof wiserGroup) {
+               wiserGroup.setLevel(level);
+             } else {
+               this.log.warn('Could not find group address '+group+' for event '+resp);
+             }
           }
 
       }
@@ -82,11 +96,11 @@ var Wiser = function(address, username, password, port) {
         var command = response[0].$.command;
         console.log(response[0]);
       }
-    });
+    }.bind(this));
 
   }
 
-  Wiser.protoytpe.socketClosed = function(error) {
+  Wiser.prototype.socketClosed = function(error) {
     if (error) {
       console.log('Socket closed with error')
     } else {
@@ -96,10 +110,10 @@ var Wiser = function(address, username, password, port) {
   }
 
   Wiser.prototype.authenticate = function() {
-      if ('undefined' == typeof authKey) {
+      if ('undefined' == typeof this.authKey) {
         console.log('AuthKey is not defined');
       } else {
-        this.socket.write('<cbus_auth_cmd value="'+authKey+'" cbc_version="3.7.0" count="0" />');
+        this.socket.write('<cbus_auth_cmd value="'+this.authKey+'" cbc_version="3.7.0" count="0" />');
       }
   }
 
@@ -110,13 +124,15 @@ var Wiser = function(address, username, password, port) {
   }
 
   Wiser.prototype.setLevel = function(network, group, level, ramp) {
-    this.socket.write('<cbus_cmd app="56" command="cbusSetLevel" network="'+network+
+    var cmd  = '<cbus_cmd app="56" command="cbusSetLevel" network="'+network+
     '" numaddresses="1" addresses="'+group+
-    '" levels="'+level+'" ramps="'+ramp+'"/>');
+    '" levels="'+level+'" ramps="'+ramp+'"/>';
+    console.log(cmd);
+    this.socket.write(cmd)
   }
 
   Wiser.prototype.getLevels = function() {
-    if ('undefined' != typeof socket.remoteAddress) {
+    if ('undefined' != typeof this.socket.remoteAddress) {
       this.socket.write('<cbus_cmd app="0x38" command="cbusGetLevel" numaddresses="256" />');
     }
   }
