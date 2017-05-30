@@ -1,6 +1,6 @@
 {
   "name": "homebridge-wiser",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "C-Bus Wiser plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
