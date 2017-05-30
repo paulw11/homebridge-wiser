@@ -25,7 +25,7 @@ var WiserSwitch = function (homebridge, log, wiser, wisergroup) {
 }
 
 WiserSwitch.prototype._levelSet = function() {
-    this._onChar.setValue((this._group.level > 0), undefined, `event`);
+  this._onChar.setValue((this._group.level > 0), undefined, `event`);
 }
 
 WiserSwitch.prototype.getServices = function() {
@@ -36,20 +36,20 @@ WiserSwitch.prototype._setOn = function(on, callback,context) {
   if (context === `event`) {
     callback()
   } else {
-  this.log("Setting switch to "+on);
-  var level = 0;
-  if (on) {
-    level = 255;
+    this.log("Setting switch to "+on);
+    var level = 0;
+    if (on) {
+      level = 255;
+    }
+
+    this._wiser.setGroupLevel(this._group,level,0);
+
+    callback();
   }
-
-  this._wiser.setGroupLevel(this._group,level,0);
-
-  callback();
-}
 }
 
 WiserSwitch.prototype._getOn = function(callback) {
-    callback(false,this._group.level > 0);
+  callback(false,this._group.level > 0);
 }
 
 module.exports= WiserSwitch;

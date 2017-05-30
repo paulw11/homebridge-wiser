@@ -50,14 +50,14 @@ WiserDimmer.prototype._setOn = function(on, callback,context) {
     var wasOn = this._group.level > 0;
 
     if (wasOn != on) {
-    this.log("Setting switch to "+on);
-    var level = 0;
-    if (on) {
-      level = 255;
+      this.log("Setting switch to "+on);
+      var level = 0;
+      if (on) {
+        level = 255;
+      }
+      this._isOn = on;
+      this._wiser.setGroupLevel(this._group,level,0);
     }
-    this._isOn = on;
-    this._wiser.setGroupLevel(this._group,level,0);
-  }
 
     callback();
   }
