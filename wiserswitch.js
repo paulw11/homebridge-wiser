@@ -19,6 +19,12 @@ var WiserSwitch = function (homebridge, log, wiser, wisergroup) {
   var id = wisergroup.name+":"+wisergroup.groupAddress;
   this.uuid_base = id;
   this._onChar = this._service.getCharacteristic(Characteristic.On);
+  this._informationService = new Service.AccessoryInformation();
+
+  this._informationService.setCharacteristic(Characteristic.Manufacturer, 'Clipsal')
+                        .setCharacteristic(Characteristic.Model, 'Relay')
+                        .setCharacteristic(Characteristic.SerialNumber, this._group.groupAddress);  
+
   this._onChar.on('set', this._setOn.bind(this));
 
   this._group.on('levelSet', this._levelSet.bind(this));
@@ -29,7 +35,7 @@ WiserSwitch.prototype._levelSet = function() {
 }
 
 WiserSwitch.prototype.getServices = function() {
-  return [this._service];
+  return [this._service, this._informationService];
 }
 
 WiserSwitch.prototype._setOn = function(on, callback,context) {

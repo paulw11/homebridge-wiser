@@ -15,6 +15,12 @@ var WiserDimmer = function (homebridge, log, wiser, wisergroup) {
   } else {
     this._service = new Service.Switch(wisergroup.name);
   }
+
+  this._informationService = new Service.AccessoryInformation();
+
+  this._informationService.setCharacteristic(Characteristic.Manufacturer, 'Clipsal')
+                        .setCharacteristic(Characteristic.Model, 'Dimmer')
+                        .setCharacteristic(Characteristic.SerialNumber, this._group.groupAddress);
   this.name = wisergroup.name;
   var id = wisergroup.name+":"+wisergroup.groupAddress;
   this.uuid_base = id;
@@ -40,7 +46,7 @@ WiserDimmer.prototype._levelSet = function() {
 }
 
 WiserDimmer.prototype.getServices = function() {
-  return [this._service];
+  return [this._service, this._informationService];
 }
 
 WiserDimmer.prototype._setOn = function(on, callback,context) {

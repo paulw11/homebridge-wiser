@@ -29,6 +29,7 @@ Wiser.prototype.start = function() {
   }.bind(this));
 
   this.request(wiserURL+"clipsal/resources/project.xml", function (error, response, body) {
+//  this.log.debug(body);
     var configParser = require('xml2js').parseString;
 
     configParser(body, function(err, result) {
