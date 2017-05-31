@@ -35,5 +35,5 @@ be added as new accessories automatically.
 
 Credits
 -------
-Thanks to [Michael Farrell](http://micolous.id.au) for [Documenting](https://github.com/micolous/cbus/blob/master/docs/wiser-swf-protocol.rst)
-the Wiser protocol.
+Thanks to [Michael Farrell](http://micolous.id.au) for some useful [Documentation](https://github.com/micolous/cbus/blob/master/docs/wiser-swf-protocol.rst)
+on the Wiser.
