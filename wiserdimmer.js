@@ -38,7 +38,7 @@ WiserDimmer.prototype._levelSet = function() {
   var level = this._group.level;
   var wasOn = this._isOn;
   this._isOn = (level > 0);
-  var brightLevel = level/255 * 100;
+  var brightLevel = (level/255) * 100;
   if (this._isOn != wasOn) {
     this._onChar.setValue((level > 0), undefined, `event`);
   }
@@ -91,7 +91,7 @@ WiserDimmer.prototype.setBrightness = function(newLevel, callback,context) {
 }
 
 WiserDimmer.prototype.getBrightness = function(callback) {
-  var level = this._group.level / 255;
+  var level = (this._group.level / 255) * 100;
   callback(false,level);
 }
 
