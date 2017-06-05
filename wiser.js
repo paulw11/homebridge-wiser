@@ -13,52 +13,108 @@ var Wiser = function(log, address, username, password, port) {
   this.request = require('request');
   this.wiserGroups = {};
   this.namedGroups = {};
-  this.socket = require('net').Socket();
+  //this.socket = require('net').Socket();
+  this._backoff = 1000;
+  this._wiserURL = "http://"+this.username+":"+this.password+"@"+this.address+"/";
 }
 
 util.inherits(Wiser,EventEmitter);
 
 Wiser.prototype.start = function() {
-  var wiserURL = "http://"+this.username+":"+this.password+"@"+this.address+"/";
-  this.request(wiserURL+"clipsal/resources/projectorkey.xml", function (error, response, body) {
-    var authParser = require('xml2js').parseString;
 
-    authParser(body, function(err,result) {
-      this.authKey = result.cbus_auth_data.$.value;
-    }.bind(this));
+  this.getAuthKey( function(err,authkey) {
+    if ('undefined' != err) {
+      this.authKey = authkey;
+      this.getProject( function(err) {
+        if ('undefined' == typeof err) {
+          this.connectSocket();
+        } else {
+          this.log.error('Error retrieving project '+err);
+          this.retryConnection();
+        }
+      }.bind(this));
+    } else {
+      this.log.error('Error retrieving Authkey '+err);
+      this.retryConnection();
+    }
   }.bind(this));
 
-  this.request(wiserURL+"clipsal/resources/project.xml", function (error, response, body) {
-//  this.log.debug(body);
-    var configParser = require('xml2js').parseString;
+}
 
-    configParser(body, function(err, result) {
-      var widgets = result.Project.Widgets[0]['widget'];
-
-      for (var i = 0; i < widgets.length; i++ ) {
-        var params = widgets[i].params;
-        var app = params[0].$.app;
-        var ga = params[0].$.ga;
-        var name = params[0].$.label;
-
-        if ("undefined" != typeof app &&
-        "undefined" != typeof ga &&
-        "undefined" != typeof name) {
-          var group = new WiserGroup(app,254,ga,name);
-          group.dimmable = (widgets[i].$.type == '1');
-          this.wiserGroups[ga] = group;
-          this.namedGroups[group.name] = group;
+Wiser.prototype.getAuthKey = function(callback) {
+  this.request(this._wiserURL+"clipsal/resources/projectorkey.xml", function (error, response, body) {
+    if (error) {
+      callback(error, undefined);
+    } else {
+      var authParser = require('xml2js').parseString;
+      authParser(body, function(err,result) {
+        if (err || !result){
+          callback(err,undefined);
+        } else {
+          callback(undefined,result.cbus_auth_data.$.value);
         }
-      }
-      this.socket.connect(this.port, this.address);
-      this.socket.on('connect', this.handleWiserConnection.bind(this));
-      this.socket.on('data', this.handleWiserData.bind(this));
-      this.socket.on('close', this.socketClosed.bind(this));
-    }.bind(this));
+      }.bind(this));
+    }
   }.bind(this));
 }
 
+Wiser.prototype.getProject = function(callback) {
+  this.request(this._wiserURL+"clipsal/resources/project.xml", function (error, response, body) {
+    //  this.log.debug(body);
+    if (error) {
+      callback(error);
+    } else {
+      var configParser = require('xml2js').parseString;
+
+      configParser(body, function(err, result) {
+        if (err || !result) {
+          callback(err);
+        } else {
+          var widgets = result.Project.Widgets[0]['widget'];
+
+          for (var i = 0; i < widgets.length; i++ ) {
+            var params = widgets[i].params;
+            var app = params[0].$.app;
+            var ga = params[0].$.ga;
+            var name = params[0].$.label;
+
+            if ("undefined" != typeof app &&
+            "undefined" != typeof ga &&
+            "undefined" != typeof name) {
+              var group = new WiserGroup(app,254,ga,name);
+              group.dimmable = (widgets[i].$.type == '1');
+              this.wiserGroups[ga] = group;
+              this.namedGroups[group.name] = group;
+            }
+          }
+          callback(undefined);
+        }
+      }.bind(this));
+    }
+  }.bind(this));
+}
+
+Wiser.prototype.retryConnection = function() {
+  this.log.debug("Retrying after "+this._backoff/1000+" seconds");
+  setTimeout(function() {
+    this.start();
+  }.bind(this), this._backoff);
+  if (this._backoff < 512000) {
+    this._backoff = this._backoff * 2;
+  }
+}
+
+Wiser.prototype.connectSocket = function() {
+  this.socket = require('net').Socket();
+  this.socket.connect(this.port, this.address);
+  this.socket.on('connect', this.handleWiserConnection.bind(this));
+  this.socket.on('data', this.handleWiserData.bind(this));
+  this.socket.on('error', this.handleSocketError.bind(this));
+  this.socket.on('close', this.socketClosed.bind(this));
+}
+
 Wiser.prototype.handleWiserConnection = function () {
+  this._backoff = 1000;
   this.authenticate();
   this.getLevels();
   this.log.info('discovery complete');
@@ -111,12 +167,19 @@ Wiser.prototype.handleWiserData = function(data) {
 
 }
 
+Wiser.prototype.handleSocketError = function(error) {
+  this.log.error('Socket error '+error);
+}
+
 Wiser.prototype.socketClosed = function(error) {
   if (error) {
-    this.log.error('Socket closed with error')
+    this.log.error('Socket closed with error');
   } else {
-    this.log.error('Socket closed');
+    this.log.info('Socket closed');
   }
+  this.socket.destroy();
+  this.socket = undefined;
+  this.retryConnection();
 
 }
 
