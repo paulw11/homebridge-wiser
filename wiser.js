@@ -129,21 +129,22 @@ Wiser.prototype.handleWiserData = function(data) {
     var event = result.response.cbus_event;
     var response = result.response.cbus_resp;
     if ('undefined' != typeof event) {
-      event = event[0].$;
-      var eventName = event.name;
+      for (var i=0;i < event.length; i++) {
+        var currentEvent = event[i].$;
+        var eventName = currentEvent.name;
 
-      switch (eventName) {
-        case 'cbusSetLevel':
-        var group = parseInt(event.group);
-        var level = parseInt(event.level);
-        var wiserGroup = this.wiserGroups[group];
-        if ('undefined' != typeof wiserGroup) {
-          wiserGroup.setLevel(level);
-        } else {
-          this.log.warn('Could not find group address '+group+' for event '+resp);
+        switch (eventName) {
+          case 'cbusSetLevel':
+          var group = parseInt(currentEvent.group);
+          var level = parseInt(currentEvent.level);
+          var wiserGroup = this.wiserGroups[group];
+          if ('undefined' != typeof wiserGroup) {
+            wiserGroup.setLevel(level);
+          } else {
+            this.log.warn('Could not find group address '+group+' for event '+resp);
+          }
         }
       }
-
     }
 
     if ('undefined' != typeof response) {
