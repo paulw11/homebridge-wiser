@@ -35,6 +35,7 @@ var WiserDimmer = function (homebridge, log, wiser, wisergroup) {
 }
 
 WiserDimmer.prototype._levelSet = function() {
+  this.log.debug("Setting group "+this._group.name+"("+this._group.groupAddress+") to "+this._group.level);
   var level = this._group.level;
   var wasOn = this._isOn;
   this._isOn = (level > 0);
