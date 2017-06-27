@@ -33,6 +33,9 @@ Configuration
 After adding the platform, simply restart homebridge and your C-Bus groups will
 be added as new accessories automatically.
 
+**Note**: `wiserPort` is *not* the web server port on your wiser (80).  Unless you have changed your Wiser from the default settings,
+`8888` is the correct value.
+
 Credits
 -------
 Thanks to [Michael Farrell](http://micolous.id.au) for some useful [Documentation](https://github.com/micolous/cbus/blob/master/docs/wiser-swf-protocol.rst)
