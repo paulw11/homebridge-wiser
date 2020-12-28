@@ -46,6 +46,7 @@ Wiser.prototype.getAuthKey = function (callback) {
     if (error) {
       callback(error, undefined);
     } else {
+      this.log.debug(`Auth response body: ${body}`)
       var authParser = require('xml2js').parseString;
       authParser(body, function (err, result) {
         if (err || !result) {
@@ -60,7 +61,7 @@ Wiser.prototype.getAuthKey = function (callback) {
 
 Wiser.prototype.getProject = function (callback) {
   this.request(this._wiserURL + "clipsal/resources/project.xml", function (error, response, body) {
-    //  this.log.debug(body);
+    this.log.debug(`Config response body: ${body}`)
     if (error) {
       callback(error);
     } else {
