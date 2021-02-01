@@ -1,4 +1,6 @@
-# homebridge-wiser
+homebridge-wiser
+================
+
 homebridge-wiser is a plug-in for [Homebridge](https://github.com/nfarina/homebridge) by Nick Farina
 that adds support for the original Clipsal C-Bus Wiser and the Clipsal Wiser 2.
 
@@ -17,7 +19,7 @@ Configuration
 
 *homebridge-wiser* is added as a `platform` in your config.json:
 
-```
+```JSON
 "platforms": [
   {
   "platform": "Wiser",
@@ -38,5 +40,6 @@ be added as new accessories automatically.
 
 Credits
 -------
+
 Thanks to [Michael Farrell](http://micolous.id.au) for some useful [Documentation](https://github.com/micolous/cbus/blob/master/docs/wiser-swf-protocol.rst)
 on the Wiser.
