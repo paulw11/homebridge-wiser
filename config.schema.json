@@ -1,0 +1,40 @@
+{
+	"pluginAlias": "ElkM1",
+	"pluginType": "platform",
+	"singular": false,
+	"schema": {
+		"type": "object",
+		"properties": {
+			"name": {
+				"title": "Name",
+				"type": "string",
+				"required": true
+			},
+			"wiserAddress": {
+				"title": "Wiser IP Address",
+				"type": "string",
+				"format": "ipv4",
+				"required": true
+			},
+			"wiserUsername": {
+				"title": "Wiser admin user name",
+				"type": "string",
+				"default": "admin",
+				"required": true
+			},
+			"wiserPassword": {
+				"title":"Wiser admin password",
+				"type": "string",
+				"required":true
+			},
+			"wiserPort": {
+				"title":"Wiser admin password",
+				"type": "integer",
+				"default":8888,
+				"required":true
+			}
+		}
+	},
+	"form": null,
+	"display": null
+}
