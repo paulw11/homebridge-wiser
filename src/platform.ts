@@ -1,3 +1,125 @@
+'use strict';
+
+import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
+import { GroupSetEvent, WiserProjectGroup } from './models';
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
+import { Wiser } from './wiser';
+import { WiserBulb } from './wiserbulb';
+/*import { WiserGroup } from './WiserGroup';
+import { WiserSwitch } from './WiserSwitch';
+import { WiserDimmer } from './WiserDimmer';*/
+
+
+export class WiserPlatform implements DynamicPlatformPlugin {
+    public readonly Service: typeof Service = this.api.hap.Service;
+    public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
+
+    // this is used to track restored cached accessories
+    public readonly accessories: PlatformAccessory[] = [];
+
+    private wiserAddress: string;
+    private wiserPort: number;
+    private username: string;
+    private password: string;
+    private wiser: Wiser;
+    private wiserGroups: Record<number, WiserBulb> = {};
+
+    private initialRetryDelay = 5000;
+    private retryDelay = this.initialRetryDelay;
+
+    constructor(
+        public readonly log: Logger,
+        public readonly config: PlatformConfig,
+        public readonly api: API,
+    ) {
+        this.log.debug('Finished initializing platform:', this.config.name);
+
+        this.wiserAddress = this.config.wiserAddress;
+        this.wiserPort = this.config.wiserPort;
+        this.username = this.config.wiserUsername;
+        this.password = this.config.wiserPassword;
+
+        this.wiser = new Wiser(this.wiserAddress, this.wiserPort, this.username, this.password, log);
+
+        // When this event is fired it means Homebridge has restored all cached accessories from disk.
+        // Dynamic Platform plugins should only register new accessories after this event was fired,
+        // in order to ensure they weren't added to homebridge already. This event can also be used
+        // to start discovery of new accessories.
+        this.api.on('didFinishLaunching', () => {
+            log.debug('Executed didFinishLaunching callback');
+            this.wiser.start();
+
+            this.wiser.on('retrievedProject', (projectGroups: WiserProjectGroup[]) => {
+                for (const group of projectGroups) {
+                    this.addBulb(group);
+                }
+            });
+
+            this.wiser.on('groupSet', (groupSetEvent: GroupSetEvent) => {
+                this.setGroup(groupSetEvent);
+            });
+
+            this.wiser.on('groupSetScan', (groupSetEvent: GroupSetEvent) => {
+                this.setGroup(groupSetEvent, false);
+            });
+        });
+    }
+
+    setGroup(groupSetEvent: GroupSetEvent, missingGroupIsError = true) {
+        const bulb = this.wiserGroups[groupSetEvent.groupAddress]
+        if (undefined !== bulb) { 
+            this.log.debug(`Setting ${bulb.name}(${bulb.id}) to ${groupSetEvent.level}`);
+            bulb.setStatusFromEvent(groupSetEvent);
+        } else {
+            if (missingGroupIsError) {
+                this.log.warn(`Could not find accessory to handle event for ${groupSetEvent.groupAddress}`);
+            }
+        }
+    }
+
+    /**
+     * This function is invoked when homebridge restores cached accessories from disk at startup.
+     * It should be used to setup event handlers for characteristics and update respective values.
+     */
+    configureAccessory(accessory: PlatformAccessory) {
+        this.log.info('Loading accessory from cache:', accessory.displayName);
+
+        // add the restored accessory to the accessories cache so we can track if it has already been registered
+        this.accessories.push(accessory);
+    }
+
+    addBulb(group: WiserProjectGroup) {
+        const device = {
+            displayName: group.name,
+            name: group.name,
+            id: group.groupAddress,
+            wiser: this.wiser,
+            isDimmable: group.isDimmable
+        };
+
+        this.log.debug(`Adding bulb ${device}`);
+
+        const uuid = this.api.hap.uuid.generate(`${group.network}-${group.application}-${device.id}`);
+        const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+
+        if (existingAccessory) {
+            // the accessory already exists
+            this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+            existingAccessory.context.device = device;
+            const bulb = new WiserBulb(this, existingAccessory);
+            this.wiserGroups[device.id] = bulb;
+        } else {
+            this.log.info('Adding new accessory:', device.displayName);
+            const accessory = new this.api.platformAccessory(device.displayName, uuid);
+            accessory.context.device = device;
+            const bulb = new WiserBulb(this, accessory);
+            // link the accessory to your platform
+            this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+            this.wiserGroups[device.id] = bulb;
+        }
+    }
+}
+/*
 "use strict";
 
 const WiserGroup = require('./wisergroup.js');
@@ -219,3 +341,4 @@ Wiser.prototype.getLevels = function () {
 
 
 module.exports = Wiser;
+*/
