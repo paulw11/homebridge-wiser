@@ -1,5 +1,5 @@
 {
-	"pluginAlias": "homebridge-platform-wiser",
+	"pluginAlias": "homebridge-wiser",
 	"pluginType": "platform",
 	"singular": false,
 	"schema": {
