@@ -141,7 +141,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
         this.wiserGroups[device.id] = wiserAccessory;
     }
 
-    createAccessory(device: WiserDevice, accessory: PlatformAccessory): WiserSwitch {
+    createAccessory(device: WiserDevice, accessory: PlatformAccessory): WiserAccessory {
 
 
         switch (device.wiserProjectGroup.deviceType) {
