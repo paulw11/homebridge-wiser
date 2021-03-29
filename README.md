@@ -18,7 +18,7 @@ Changes in 2.0
 --------------
 
 You will need to make some changes in your config file if you are upgrading from version 1 of this plugin.
-The platform name is now `homebridge-wiser`
+The platform name is now `homebridge-wiser`.  Note that this change means your accessories will be re-created.
 
 Other enhancements in 2.0 include:
 
