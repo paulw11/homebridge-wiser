@@ -1,10 +1,12 @@
 'use strict';
 
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
-import { GroupSetEvent, WiserDevice, WiserProjectGroup } from './models';
+import { access } from 'node:fs';
+import { GroupSetEvent, WiserDevice, WiserProjectGroup, DeviceType } from './models';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { Wiser } from './wiser';
 import { WiserBulb } from './wiserbulb';
+import { WiserFan } from './wiserfan';
 import { WiserSwitch } from './wiserswitch';
 /*import { WiserGroup } from './WiserGroup';
 import { WiserSwitch } from './WiserSwitch';
@@ -52,7 +54,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
 
             this.wiser.on('retrievedProject', (projectGroups: WiserProjectGroup[]) => {
                 for (const group of projectGroups) {
-                    this.addBulb(group);
+                    this.addDevice(group);
                 }
             });
 
@@ -68,7 +70,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
 
     setGroup(groupSetEvent: GroupSetEvent, missingGroupIsError = true) {
         const bulb = this.wiserGroups[groupSetEvent.groupAddress]
-        if (undefined !== bulb) { 
+        if (undefined !== bulb) {
             this.log.debug(`Setting ${bulb.name}(${bulb.id}) to ${groupSetEvent.level}`);
             bulb.setStatusFromEvent(groupSetEvent);
         } else {
@@ -89,30 +91,56 @@ export class WiserPlatform implements DynamicPlatformPlugin {
         this.accessories.push(accessory);
     }
 
-    addBulb(group: WiserProjectGroup) {
+    addDevice(group: WiserProjectGroup) {
 
         const device = new WiserDevice(group.name, group.name, group.groupAddress, group, this.wiser);
+
+        if (undefined !== this.wiserGroups[device.id]) {
+            this.log.warn(`Ignoring duplicate device for group address ${device.id}`);
+            return;
+        }
 
         this.log.debug(`Adding group ${device.id}`);
 
         const uuid = this.api.hap.uuid.generate(`${group.network}-${group.application}-${device.id}`);
         const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
+        let wiserAccessory;
+
         if (existingAccessory) {
             // the accessory already exists
             this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
             existingAccessory.context.device = device;
-            const bulb = group.isDimmable ? new WiserBulb(this, existingAccessory) : new WiserSwitch(this, existingAccessory);
-            this.wiserGroups[device.id] = bulb;
+            wiserAccessory = this.createAccessory(device, existingAccessory);
         } else {
             this.log.info('Adding new accessory:', device.displayName);
             const accessory = new this.api.platformAccessory(device.displayName, uuid);
             accessory.context.device = device;
-            const bulb = group.isDimmable ? new WiserBulb(this, accessory) : new WiserSwitch(this, accessory);
+            wiserAccessory = this.createAccessory(device, accessory);
             // link the accessory to your platform
             this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-            this.wiserGroups[device.id] = bulb;
         }
+        this.wiserGroups[device.id] = wiserAccessory;
+    }
+
+    createAccessory(device: WiserDevice, accessory: PlatformAccessory): WiserSwitch {
+
+
+        switch (device.wiserProjectGroup.deviceType) {
+            case DeviceType.switch:
+                return new WiserSwitch(this, accessory);
+                break;
+            case DeviceType.dimmer:
+                return new WiserBulb(this, accessory);
+                break;
+            case DeviceType.fan:
+                return new WiserFan(this, accessory);
+                break;
+            default:
+                this.log.error(`Unknown device type ${device.wiserProjectGroup.deviceType}`)
+                break;
+        }
+        return new WiserSwitch(this, accessory);
     }
 }
 /*

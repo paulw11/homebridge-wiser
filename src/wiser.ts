@@ -2,7 +2,7 @@
 
 import { EventEmitter } from 'events';
 import net from 'net';
-import { GroupSetEvent, WiserProjectGroup } from './models';
+import { DeviceType, GroupSetEvent, WiserProjectGroup } from './models';
 //import { got } from 'got';
 import { Logger } from 'homebridge';
 //import { xml2js } from 'xml2js';
@@ -103,8 +103,8 @@ export class Wiser extends EventEmitter {
 
         const groups: WiserProjectGroup[] = [];
 
-        for (let i = 0; i < widgets.length; i++) {
-            const params = widgets[i].params;
+        for (const widget of widgets) {
+            const params = widget.params;
             const app = params[0].$.app;
             const ga = params[0].$.ga;
             const name = params[0].$.label;
@@ -114,9 +114,32 @@ export class Wiser extends EventEmitter {
                 'undefined' !== typeof ga &&
                 'undefined' !== typeof name &&
                 'undefined' !== typeof network) {
-                const isDimmable = (widgets[i].$.type === '1')
-                const group = new WiserProjectGroup(name, ga, isDimmable, app, network);
-                this.log.debug(`New group ${group.network}:${group.groupAddress}`);
+
+                let deviceType: DeviceType;
+
+                switch (widget.$.type) {
+                    case '1':
+                        deviceType = DeviceType.dimmer;
+                        break;
+                    case '25':
+                        deviceType = DeviceType.fan;
+                        break;
+                    default:
+                        deviceType = DeviceType.switch;
+                }
+
+                const fanSpeeds:number[] = [];
+                if (deviceType === DeviceType.fan) {
+                    const speeds = params[0].$.speeds.split('|');
+                    for (const speed of speeds) {
+                        if (!isNaN(speed)) {
+                            fanSpeeds.push(parseInt(speed));
+                        }
+                        fanSpeeds.sort();
+                    }
+                }
+                const group = new WiserProjectGroup(name, ga, deviceType, fanSpeeds, app, network);
+                this.log.debug(`New group ${group.network}:${group.groupAddress} of type ${group.deviceType}`);
                 groups.push(group);
             }
         }

@@ -9,11 +9,26 @@ export class GroupSetEvent {
     ) { }
 }
 
+export class DeviceType {
+    static switch = new DeviceType('switch');
+    static dimmer = new DeviceType('dimmer');
+    static fan = new DeviceType('fan');
+
+    constructor(public name: string) {
+    }
+
+    toString() {
+        return `${this.name}`;
+    }
+}
+
 export class WiserProjectGroup {
+
     constructor(
         public name: string,
         public groupAddress: number,
-        public isDimmable: boolean,
+        public deviceType: DeviceType,
+        public fanSpeeds: number[],
         public application,
         public network,
     ) { }

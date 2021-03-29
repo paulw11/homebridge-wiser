@@ -4,7 +4,7 @@ import { WiserPlatform } from './platform';
 import { GroupSetEvent } from './models';
 import { WiserSwitch } from './wiserswitch';
 
-export class WiserBulb extends WiserSwitch {
+export class WiserFan extends WiserSwitch {
 
     constructor(
         protected readonly platform: WiserPlatform,
@@ -20,11 +20,11 @@ export class WiserBulb extends WiserSwitch {
     }
 
     setupService(): Service {
-        const service = this.accessory.getService(this.platform.Service.Lightbulb) ||
-            this.accessory.addService(this.platform.Service.Lightbulb);
+        const service = this.accessory.getService(this.platform.Service.Fan) ||
+            this.accessory.addService(this.platform.Service.Fan);
         this.accessory.getService(this.platform.Service.AccessoryInformation)!
             .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Clipsal')
-            .setCharacteristic(this.platform.Characteristic.Model, 'Dimmer')
+            .setCharacteristic(this.platform.Characteristic.Model, 'Fan')
             .setCharacteristic(this.platform.Characteristic.SerialNumber, `${this.accessory.context.device.id}`.padStart(4, '0'));
 
         service.setCharacteristic(this.platform.Characteristic.Name, this.name);
@@ -33,22 +33,21 @@ export class WiserBulb extends WiserSwitch {
             .onGet(this.getOn.bind(this))
             .onSet(this.setOn.bind(this));
 
-        service.getCharacteristic(this.platform.Characteristic.Brightness)
+        service.getCharacteristic(this.platform.Characteristic.RotationSpeed)
             .onGet(this.getLevel.bind(this))
             .onSet(this.setLevel.bind(this));
-
 
         return service;
     }
 
     getName(): string {
         return (typeof this.accessory.context.device.name !== 'undefined') ? this.accessory.context.device.name :
-            `Light ${this.accessory.context.device.id}`;
+            `Fan ${this.accessory.context.device.id}`;
     }
 
     async getLevel(): Promise<CharacteristicValue> {
         const percent = this.level;
-        this.platform.log.debug(`Get on state ${this.name}(${this.id}) ${this.level}`);
+        this.platform.log.debug(`Get state ${this.name}(${this.id}) ${this.level}`);
         return percent;
     }
 
@@ -61,15 +60,15 @@ export class WiserBulb extends WiserSwitch {
 
     setStatusFromEvent(groupSetEvent: GroupSetEvent) {
 
-        this.level =this.toHomeKitLevel(groupSetEvent.level);
+        this.level = this.toHomeKitLevel(groupSetEvent.level);
 
-        this.platform.log.debug(`Update light level ${this.level}`);
-        this.updateOnState();
+        this.platform.log.debug(`Update fan speed ${this.level}`);
+        this.updateState();
     }
 
-    updateOnState() {
+    updateState() {
         this.service!.updateCharacteristic(this.platform.Characteristic.On, this.level > 0);
-        this.service!.updateCharacteristic(this.platform.Characteristic.Brightness, this.level);
+        this.service!.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.level);
     }
 
 

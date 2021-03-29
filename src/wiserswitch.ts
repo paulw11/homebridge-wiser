@@ -38,6 +38,7 @@ export class WiserSwitch {
             this.accessory.addService(this.platform.Service.Switch);
         this.accessory.getService(this.platform.Service.AccessoryInformation)!
             .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Clipsal')
+            .setCharacteristic(this.platform.Characteristic.Model, 'Switch')
             .setCharacteristic(this.platform.Characteristic.SerialNumber, `${this.accessory.context.device.id}`.padStart(4, '0'));
 
         service.setCharacteristic(this.platform.Characteristic.Name, this.name);
@@ -56,16 +57,25 @@ export class WiserSwitch {
 
     async setOn(value: CharacteristicValue) {
         const newState = `${value}` === 'true';
-        const currentLevel = this.level;
-        this.platform.log.debug(`${this.name} set on/off ${newState} previous level ${this.previousLevel} Current level ${currentLevel}`);
-        this.level = newState ? this.previousLevel : 0;
-        this.previousLevel = currentLevel;
-        this.wiser.setGroupLevel(this.device.wiserProjectGroup.network, this.id, this.level);
+        let targetLevel
+        if (!newState) {
+            this.previousLevel = this.level;
+            targetLevel = 0;
+        } else {
+            if (this.level === 0 ) {
+                targetLevel = this.previousLevel !== 0 ? this.previousLevel : 100;
+            } else {
+                targetLevel = this.level;
+            }
+        }
+        this.platform.log.debug(`${this.name} set on/off ${newState} target level ${targetLevel}`);
+        this.level = targetLevel;
+        this.wiser.setGroupLevel(this.device.wiserProjectGroup.network, this.id, this.toWiserLevel(targetLevel));
     }
 
     setStatusFromEvent(groupSetEvent: GroupSetEvent) {
 
-        this.level = Math.round(groupSetEvent.level / 255 * 100);
+        this.level = this.toHomeKitLevel(groupSetEvent.level);
 
         this.platform.log.debug(`Update light level ${this.level}`);
         this.updateOnState();
@@ -75,5 +85,12 @@ export class WiserSwitch {
         this.service!.updateCharacteristic(this.platform.Characteristic.On, this.level > 0);
     }
 
+    toWiserLevel(level: number): number {
+        return Math.round(level * 255 / 100);
+    }
+
+    toHomeKitLevel(wiserLevel: number): number {
+        return Math.round(wiserLevel / 255 * 100);
+    }
 
 }
