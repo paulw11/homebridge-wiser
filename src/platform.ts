@@ -9,8 +9,6 @@ import { WiserBulb } from './wiserbulb';
 import { WiserFan } from './wiserfan';
 import { WiserSwitch } from './wiserswitch';
 import { WiserBlind } from './wiserblind';
-import { ChildBridgeExternalPortService } from 'homebridge/lib/externalPortService';
-
 
 export class WiserPlatform implements DynamicPlatformPlugin {
     public readonly Service: typeof Service = this.api.hap.Service;

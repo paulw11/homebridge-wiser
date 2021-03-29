@@ -1,5 +1,5 @@
 'use strict';
-import { Service, PlatformAccessory, CharacteristicValue, Characteristic } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { WiserPlatform } from './platform';
 import { GroupSetEvent } from './models';
 import { WiserAccessory } from './wiseraccessory';

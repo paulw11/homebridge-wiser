@@ -5,7 +5,6 @@ import { GroupSetEvent } from './models';
 import { WiserAccessory } from './wiseraccessory';
 
 export class WiserSwitch extends WiserAccessory {
-;
 
     protected level = 0;
     protected previousLevel = 100;
