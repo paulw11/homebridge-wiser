@@ -4,7 +4,7 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import { GroupSetEvent, WiserDevice, WiserProjectGroup, DeviceType, AccessoryAddress } from './models';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { Wiser } from './wiser';
-import { WiserAccessory } from './WiserAccessory';
+import { WiserAccessory } from './wiseraccessory';
 import { WiserBulb } from './wiserbulb';
 import { WiserFan } from './wiserfan';
 import { WiserSwitch } from './wiserswitch';
