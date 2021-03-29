@@ -116,7 +116,7 @@ export class Wiser extends EventEmitter {
                 'undefined' !== typeof network) {
                 const isDimmable = (widgets[i].$.type === '1')
                 const group = new WiserProjectGroup(name, ga, isDimmable, app, network);
-                this.log.debug(`New group ${group}`);
+                this.log.debug(`New group ${group.network}:${group.groupAddress}`);
                 groups.push(group);
             }
         }
@@ -154,7 +154,7 @@ export class Wiser extends EventEmitter {
                 switch (command) {
                     case 'cbusGetLevel':
                         levels = response[0].$.level.split(',');
-                        for (let i = 0; i < levels.length; i++) {
+                        for (let i = 0; i < levels.length-1; i++) {
                             const level = parseInt(levels[i]);
                             this.log.debug(`Setting level ${level} for ${i}`);
                             this.emit('groupSetScan', new GroupSetEvent(i, level));
@@ -167,8 +167,7 @@ export class Wiser extends EventEmitter {
             });
     }
 
-    setGroupLevel(groupAddress: number, level: number, ramp = 0) {
-        const network = 254;
+    setGroupLevel(network: number, groupAddress: number, level: number, ramp = 0) {
         const cmd = `<cbus_cmd app="56" command="cbusSetLevel" network="${network}" numaddresses="1" addresses="${groupAddress}" levels="${level}" ramps="${ramp}"/>`;
         this.log.debug(cmd);
         this.socket!.write(cmd);

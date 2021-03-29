@@ -1,10 +1,11 @@
 'use strict';
 
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
-import { GroupSetEvent, WiserProjectGroup } from './models';
+import { GroupSetEvent, WiserDevice, WiserProjectGroup } from './models';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { Wiser } from './wiser';
 import { WiserBulb } from './wiserbulb';
+import { WiserSwitch } from './wiserswitch';
 /*import { WiserGroup } from './WiserGroup';
 import { WiserSwitch } from './WiserSwitch';
 import { WiserDimmer } from './WiserDimmer';*/
@@ -22,7 +23,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
     private username: string;
     private password: string;
     private wiser: Wiser;
-    private wiserGroups: Record<number, WiserBulb> = {};
+    private wiserGroups: Record<number, WiserSwitch> = {};
 
     private initialRetryDelay = 5000;
     private retryDelay = this.initialRetryDelay;
@@ -89,15 +90,10 @@ export class WiserPlatform implements DynamicPlatformPlugin {
     }
 
     addBulb(group: WiserProjectGroup) {
-        const device = {
-            displayName: group.name,
-            name: group.name,
-            id: group.groupAddress,
-            wiser: this.wiser,
-            isDimmable: group.isDimmable
-        };
 
-        this.log.debug(`Adding bulb ${device}`);
+        const device = new WiserDevice(group.name, group.name, group.groupAddress, group, this.wiser);
+
+        this.log.debug(`Adding group ${device.id}`);
 
         const uuid = this.api.hap.uuid.generate(`${group.network}-${group.application}-${device.id}`);
         const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
@@ -106,13 +102,13 @@ export class WiserPlatform implements DynamicPlatformPlugin {
             // the accessory already exists
             this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
             existingAccessory.context.device = device;
-            const bulb = new WiserBulb(this, existingAccessory);
+            const bulb = group.isDimmable ? new WiserBulb(this, existingAccessory) : new WiserSwitch(this, existingAccessory);
             this.wiserGroups[device.id] = bulb;
         } else {
             this.log.info('Adding new accessory:', device.displayName);
             const accessory = new this.api.platformAccessory(device.displayName, uuid);
             accessory.context.device = device;
-            const bulb = new WiserBulb(this, accessory);
+            const bulb = group.isDimmable ? new WiserBulb(this, accessory) : new WiserSwitch(this, accessory);
             // link the accessory to your platform
             this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
             this.wiserGroups[device.id] = bulb;
