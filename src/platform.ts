@@ -61,7 +61,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
             this.wiser.on('retrievedProject', (projectGroups: WiserProjectGroup[]) => {
                 for (const group of projectGroups) {
                     let ignored = false;
-                    for (const address of this.ignoredAddresses) {
+                    for (const address of this.ignoredAddresses) { // eslint-disable-next-line eqeqeq
                         if (address.network == group.address.network && address.groupAddress == group.address.groupAddress) {
                             ignored = true;
                         }
@@ -156,7 +156,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
                 return new WiserBlind(this, accessory);
                 break;
             default:
-                this.log.error(`Unknown device type ${device.wiserProjectGroup.deviceType}`)
+                this.log.error(`Unknown device type ${device.wiserProjectGroup.deviceType}`);
                 break;
         }
         return new WiserSwitch(this, accessory);

@@ -56,7 +56,6 @@ export class WiserBulb extends WiserSwitch {
         this.previousLevel = this.level;
         this.level = parseInt(`${value}`);
         this.platform.log.debug(`Homekit set ${this.name} to ${this.level} (${this.toWiserLevel(this.level)})`);
-     
         this.wiser.setGroupLevel(this.device.wiserProjectGroup.address, this.toWiserLevel(this.level));
     }
 
