@@ -2,7 +2,7 @@
 
 import { EventEmitter } from 'events';
 import net from 'net';
-import { DeviceType, GroupSetEvent, WiserProjectGroup } from './models';
+import { AccessoryAddress, DeviceType, GroupSetEvent, WiserProjectGroup } from './models';
 //import { got } from 'got';
 import { Logger } from 'homebridge';
 //import { xml2js } from 'xml2js';
@@ -121,6 +121,9 @@ export class Wiser extends EventEmitter {
                     case '1':
                         deviceType = DeviceType.dimmer;
                         break;
+                    case '10':
+                        deviceType = DeviceType.blind;
+                        break;
                     case '25':
                         deviceType = DeviceType.fan;
                         break;
@@ -138,8 +141,8 @@ export class Wiser extends EventEmitter {
                         fanSpeeds.sort();
                     }
                 }
-                const group = new WiserProjectGroup(name, ga, deviceType, fanSpeeds, app, network);
-                this.log.debug(`New group ${group.network}:${group.groupAddress} of type ${group.deviceType}`);
+                const group = new WiserProjectGroup(name, new AccessoryAddress(network, ga), deviceType, fanSpeeds, app );
+                this.log.debug(`New group ${group.address.network}:${group.address.groupAddress} of type ${group.deviceType}`);
                 groups.push(group);
             }
         }
@@ -190,8 +193,8 @@ export class Wiser extends EventEmitter {
             });
     }
 
-    setGroupLevel(network: number, groupAddress: number, level: number, ramp = 0) {
-        const cmd = `<cbus_cmd app="56" command="cbusSetLevel" network="${network}" numaddresses="1" addresses="${groupAddress}" levels="${level}" ramps="${ramp}"/>`;
+    setGroupLevel(address: AccessoryAddress, level: number, ramp = 0) {
+        const cmd = `<cbus_cmd app="56" command="cbusSetLevel" network="${address.network}" numaddresses="1" addresses="${address.groupAddress}" levels="${level}" ramps="${ramp}"/>`;
         this.log.debug(cmd);
         this.socket!.write(cmd);
     }

@@ -1,31 +1,21 @@
 'use strict';
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { WiserPlatform } from './platform';
-import { GroupSetEvent, WiserDevice } from './models';
-import { Wiser } from './wiser';
+import { GroupSetEvent } from './models';
+import { WiserAccessory } from './WiserAccessory';
 
-export class WiserSwitch {
+export class WiserSwitch extends WiserAccessory {
+;
 
-    protected wiser: Wiser;
-    protected device: WiserDevice;
-    protected service: Service;
     protected level = 0;
     protected previousLevel = 100;
-
-    public readonly id: number;
-    public readonly name: string;
 
     constructor(
         protected readonly platform: WiserPlatform,
         protected readonly accessory: PlatformAccessory,
     ) {
 
-        this.wiser = this.accessory.context.device.wiser;
-        this.device = this.accessory.context.device;
-        this.id = this.accessory.context.device.id;
-        this.name = this.getName();
-
-        this.service = this.setupService();
+        super(platform, accessory);
     }
 
     getName(): string {
@@ -70,7 +60,7 @@ export class WiserSwitch {
         }
         this.platform.log.debug(`${this.name} set on/off ${newState} target level ${targetLevel}`);
         this.level = targetLevel;
-        this.wiser.setGroupLevel(this.device.wiserProjectGroup.network, this.id, this.toWiserLevel(targetLevel));
+        this.wiser.setGroupLevel(this.device.wiserProjectGroup.address, this.toWiserLevel(targetLevel));
     }
 
     setStatusFromEvent(groupSetEvent: GroupSetEvent) {
@@ -83,14 +73,6 @@ export class WiserSwitch {
 
     updateOnState() {
         this.service!.updateCharacteristic(this.platform.Characteristic.On, this.level > 0);
-    }
-
-    toWiserLevel(level: number): number {
-        return Math.round(level * 255 / 100);
-    }
-
-    toHomeKitLevel(wiserLevel: number): number {
-        return Math.round(wiserLevel / 255 * 100);
     }
 
 }

@@ -16,7 +16,7 @@ export class WiserFan extends WiserSwitch {
 
     fetName(): string {
         return (typeof this.accessory.context.device.name !== 'undefined') ? this.accessory.context.device.name :
-            `Switch ${this.accessory.context.device.id}`;
+            `Fan ${this.accessory.context.device.id}`;
     }
 
     setupService(): Service {
@@ -55,7 +55,7 @@ export class WiserFan extends WiserSwitch {
         this.previousLevel = this.level;
         this.level = parseInt(`${value}`);
         this.platform.log.debug(`Homekit set ${this.name} to ${this.level} (${this.toWiserLevel(this.level)})`);
-        this.wiser.setGroupLevel(this.device.wiserProjectGroup.network, this.id, this.toWiserLevel(this.level));
+        this.wiser.setGroupLevel(this.device.wiserProjectGroup.address, this.toWiserLevel(this.level));
     }
 
     setStatusFromEvent(groupSetEvent: GroupSetEvent) {

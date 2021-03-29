@@ -1,5 +1,6 @@
 'use strict';
 
+import { Access } from "hap-nodejs";
 import { Wiser } from "./wiser";
 
 export class GroupSetEvent {
@@ -13,6 +14,7 @@ export class DeviceType {
     static switch = new DeviceType('switch');
     static dimmer = new DeviceType('dimmer');
     static fan = new DeviceType('fan');
+    static blind = new DeviceType('blind');
 
     constructor(public name: string) {
     }
@@ -26,11 +28,10 @@ export class WiserProjectGroup {
 
     constructor(
         public name: string,
-        public groupAddress: number,
+        public address: AccessoryAddress,
         public deviceType: DeviceType,
         public fanSpeeds: number[],
         public application,
-        public network,
     ) { }
 }
 
@@ -42,4 +43,15 @@ export class WiserDevice {
         public wiserProjectGroup: WiserProjectGroup,
         public wiser: Wiser,
     ) { }
+}
+
+export class AccessoryAddress {
+    constructor(
+        public readonly network: number,
+        public readonly groupAddress: number,
+    ) { }
+
+    toString() {
+        return `${this.network}:${this.groupAddress}`;
+    }
 }
