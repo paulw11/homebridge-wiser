@@ -23,15 +23,39 @@
 				"required": true
 			},
 			"wiserPassword": {
-				"title":"Wiser admin password",
+				"title": "Wiser admin password",
 				"type": "string",
-				"required":true
+				"required": true
 			},
 			"wiserPort": {
-				"title":"Wiser admin password",
+				"title": "Wiser admin password",
 				"type": "integer",
-				"default":8888,
-				"required":true
+				"default": 8888,
+				"required": true
+			},
+			"ignoredGAs": {
+				"title": "Ignored groups",
+				"type": "array",
+				"items": {
+					"title": "Group address",
+					"type": "object",
+					"properties": {
+						"network": {
+							"title": "Network",
+							"type": "integer",
+							"required": true,
+							"default": 254,
+							"maximum":255
+						},
+						"ga": {
+							"title": "Group address",
+							"type": "integer",
+							"required": true,
+							"maximum":255,
+							"default": 0
+						}
+					}
+				}
 			}
 		}
 	},

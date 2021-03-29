@@ -1,16 +1,15 @@
 'use strict';
 
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
-import { access } from 'node:fs';
-import { GroupSetEvent, WiserDevice, WiserProjectGroup, DeviceType } from './models';
+import { GroupSetEvent, WiserDevice, WiserProjectGroup, DeviceType, AccessoryAddress } from './models';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { Wiser } from './wiser';
+import { WiserAccessory } from './WiserAccessory';
 import { WiserBulb } from './wiserbulb';
 import { WiserFan } from './wiserfan';
 import { WiserSwitch } from './wiserswitch';
-/*import { WiserGroup } from './WiserGroup';
-import { WiserSwitch } from './WiserSwitch';
-import { WiserDimmer } from './WiserDimmer';*/
+import { WiserBlind } from './wiserblind';
+import { ChildBridgeExternalPortService } from 'homebridge/lib/externalPortService';
 
 
 export class WiserPlatform implements DynamicPlatformPlugin {
@@ -25,7 +24,8 @@ export class WiserPlatform implements DynamicPlatformPlugin {
     private username: string;
     private password: string;
     private wiser: Wiser;
-    private wiserGroups: Record<number, WiserSwitch> = {};
+    private wiserGroups: Record<number, WiserAccessory> = {};
+    private ignoredAddresses: AccessoryAddress[] = [];
 
     private initialRetryDelay = 5000;
     private retryDelay = this.initialRetryDelay;
@@ -42,6 +42,14 @@ export class WiserPlatform implements DynamicPlatformPlugin {
         this.username = this.config.wiserUsername;
         this.password = this.config.wiserPassword;
 
+        if (undefined !== this.config.ignoredGAs) {
+            for (const address of this.config.ignoredGAs) {
+                const ignore = new AccessoryAddress(address.network, address.ga);
+                this.log.debug(`Adding ${ignore} to ignore list`);
+                this.ignoredAddresses.push(ignore);
+            }
+        }
+
         this.wiser = new Wiser(this.wiserAddress, this.wiserPort, this.username, this.password, log);
 
         // When this event is fired it means Homebridge has restored all cached accessories from disk.
@@ -54,7 +62,17 @@ export class WiserPlatform implements DynamicPlatformPlugin {
 
             this.wiser.on('retrievedProject', (projectGroups: WiserProjectGroup[]) => {
                 for (const group of projectGroups) {
-                    this.addDevice(group);
+                    let ignored = false;
+                    for (const address of this.ignoredAddresses) {
+                        if (address.network == group.address.network && address.groupAddress == group.address.groupAddress) {
+                            ignored = true;
+                        }
+                    }
+                    if (ignored) {
+                        this.log.info(`Ignoring ${group.name}(${group.address})`);
+                    } else {
+                        this.addDevice(group);
+                    }
                 }
             });
 
@@ -69,10 +87,10 @@ export class WiserPlatform implements DynamicPlatformPlugin {
     }
 
     setGroup(groupSetEvent: GroupSetEvent, missingGroupIsError = true) {
-        const bulb = this.wiserGroups[groupSetEvent.groupAddress]
-        if (undefined !== bulb) {
-            this.log.debug(`Setting ${bulb.name}(${bulb.id}) to ${groupSetEvent.level}`);
-            bulb.setStatusFromEvent(groupSetEvent);
+        const accessory = this.wiserGroups[groupSetEvent.groupAddress];
+        if (undefined !== accessory) {
+            this.log.debug(`Setting ${accessory.name}(${accessory.id}) to ${groupSetEvent.level}`);
+            accessory.setStatusFromEvent(groupSetEvent);
         } else {
             if (missingGroupIsError) {
                 this.log.warn(`Could not find accessory to handle event for ${groupSetEvent.groupAddress}`);
@@ -93,7 +111,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
 
     addDevice(group: WiserProjectGroup) {
 
-        const device = new WiserDevice(group.name, group.name, group.groupAddress, group, this.wiser);
+        const device = new WiserDevice(group.name, group.name, group.address.groupAddress, group, this.wiser);
 
         if (undefined !== this.wiserGroups[device.id]) {
             this.log.warn(`Ignoring duplicate device for group address ${device.id}`);
@@ -102,7 +120,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
 
         this.log.debug(`Adding group ${device.id}`);
 
-        const uuid = this.api.hap.uuid.generate(`${group.network}-${group.application}-${device.id}`);
+        const uuid = this.api.hap.uuid.generate(`${group.address.network}-${group.application}-${device.id}`);
         const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
         let wiserAccessory;
@@ -135,6 +153,9 @@ export class WiserPlatform implements DynamicPlatformPlugin {
                 break;
             case DeviceType.fan:
                 return new WiserFan(this, accessory);
+                break;
+            case DeviceType.blind:
+                return new WiserBlind(this, accessory);
                 break;
             default:
                 this.log.error(`Unknown device type ${device.wiserProjectGroup.deviceType}`)
