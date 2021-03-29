@@ -2,9 +2,9 @@
 import { Service, PlatformAccessory, CharacteristicValue, Characteristic } from 'homebridge';
 import { WiserPlatform } from './platform';
 import { GroupSetEvent } from './models';
-import { WiserSwitch } from './wiserswitch';
+import { WiserAccessory } from './wiseraccessory';
 
-export class WiserBlind extends WiserSwitch {
+export class WiserBlind extends WiserAccessory {
 
     protected targetPosition = 0;
     protected currentPosition = 0;
@@ -58,7 +58,7 @@ export class WiserBlind extends WiserSwitch {
 
     async setTarget(value: CharacteristicValue) {
         this.targetPosition = parseInt(`${value}`);
-        this.platform.log.debug(`Homekit set ${this.name} to ${this.level} (${this.toWiserLevel(this.targetPosition)})`);
+        this.platform.log.debug(`Homekit set ${this.name} to ${this.targetPosition} (${this.toWiserLevel(this.targetPosition)})`);
         this.wiser.setGroupLevel(this.device.wiserProjectGroup.address, this.toWiserLevel(this.targetPosition));
     }
 
