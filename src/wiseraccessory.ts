@@ -36,7 +36,7 @@ export class WiserAccessory {
         throw 'setupService must be overridden in subclass';
     }
 
-    setStatusFromEvent(groupSetEvent: GroupSetEvent) {
+    setStatusFromEvent(groupSetEvent: GroupSetEvent) { // eslint-disable-line @typescript-eslint/no-unused-vars
         throw 'setStatisFromEvent must be overridden in subclass';
     }
 

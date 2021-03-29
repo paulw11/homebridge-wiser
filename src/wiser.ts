@@ -211,7 +211,7 @@ export class Wiser extends EventEmitter {
           });
   }
 
-  setGroupLevel(address: AccessoryAddress, level: number, ramp = 0) {
+  setGroupLevel(address: AccessoryAddress, level: number, ramp = 0) { // eslint-disable-next-line max-len
       const cmd = `<cbus_cmd app="56" command="cbusSetLevel" network="${address.network}" numaddresses="1" addresses="${address.groupAddress}" levels="${level}" ramps="${ramp}"/>`;
       this.log.debug(cmd);
     this.socket!.write(cmd);

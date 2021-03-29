@@ -46,7 +46,7 @@ export class WiserSwitch extends WiserAccessory {
 
     async setOn(value: CharacteristicValue) {
         const newState = `${value}` === 'true';
-        let targetLevel
+        let targetLevel;
         if (!newState) {
             this.previousLevel = this.level;
             targetLevel = 0;

@@ -1,7 +1,6 @@
 'use strict';
 
-import { Access } from "hap-nodejs";
-import { Wiser } from "./wiser";
+import { Wiser } from './wiser';
 
 export class GroupSetEvent {
     constructor(
