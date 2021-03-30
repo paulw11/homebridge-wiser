@@ -8,218 +8,222 @@ import { Socket } from 'net';
 
 export class Wiser extends EventEmitter {
 
-  private wiserURL: string;
-  private backoff = 1000;
-  private got = require('got');
-  private xml2js = require('xml2js');
-  private socket: Socket | null = null;
-  private authKey = '';
-  private initialRetryDelay = 5000;
-  private retryDelay = this.initialRetryDelay;
+    private wiserURL: string;
+    private backoff = 1000;
+    private got = require('got');
+    private xml2js = require('xml2js');
+    private socket: Socket | null = null;
+    private authKey = '';
+    private initialRetryDelay = 5000;
+    private retryDelay = this.initialRetryDelay;
 
-  constructor(
-    public address: string,
-    public port: number = 8888,
-    public username: string,
-    public password: string,
-    public log: Logger,
-  ) {
-      super();
+    constructor(
+        public address: string,
+        public port: number = 8888,
+        public username: string,
+        public password: string,
+        public log: Logger,
+    ) {
+        super();
 
-      this.wiserURL = `http://${this.username}:${this.password}@${this.address}/`;
-  }
+        this.wiserURL = `http://${this.username}:${this.password}@${this.address}/`;
+    }
 
-  async start() {
+    async start() {
 
-      this.getAuthKey().then((authKey) => {
-          this.log.debug(`Retrieved authKey ${authKey}`);
-          this.authKey = authKey;
-          this.connectSocket().then((socket) => {
-              this.socket = socket;
-              this.log.debug('***Connected***');
-              this.sendAuth(socket, authKey);
-              this.getLevels();
+        this.getAuthKey().then((authKey) => {
+            this.log.debug(`Retrieved authKey ${authKey}`);
+            this.authKey = authKey;
+            this.connectSocket().then((socket) => {
+                this.socket = socket;
+                this.log.debug('***Connected***');
+                this.sendAuth(socket, authKey);
+                this.getLevels();
 
-              socket.on('data', (data) => {
-                  this.log.debug(`Received ${data}`);
-                  this.handleWiserData(data);
-              });
+                socket.on('data', (data) => {
+                    this.log.debug(`Received ${data}`);
+                    this.handleWiserData(data);
+                });
 
-              socket.on('close', () => {
-                  this.log.warn('Wiser socket closed');
-              });
-          }).then(() => {
-              this.getProject().then((projectGroups) => {
-                  this.emit('retrievedProject', projectGroups);
-              }).catch((socketError) => {
-                  this.log.error(`Error connecting to wiser - ${socketError} Will retry in ${this.retryDelay / 1000}s`);
-                  setTimeout(() => {
-                      this.start();
-                  }, this.retryDelay);
-                  this.retryDelay = this.retryDelay * 2;
-              });
-          }).catch((error) => {
-              this.handleConnectFailure(error);
-          });
-      }).catch((error) => {
-          this.handleConnectFailure(error);
-      });
+                socket.on('close', () => {
+                    this.log.warn('Wiser socket closed');
+                    this.socket = null;
+                    this.handleConnectFailure('Socket closed');
+                });
+            }).then(() => {
+                this.getProject().then((projectGroups) => {
+                    this.emit('retrievedProject', projectGroups);
+                }).catch((socketError) => {
+                    this.log.error(`Error connecting to wiser - ${socketError} Will retry in ${this.retryDelay / 1000}s`);
+                    setTimeout(() => {
+                        this.start();
+                    }, this.retryDelay);
+                    this.retryDelay = this.retryDelay * 2;
+                });
+            }).catch((error) => {
+                this.handleConnectFailure(error);
+            });
+        }).catch((error) => {
+            this.handleConnectFailure(error);
+        });
 
-  }
+    }
 
-  handleConnectFailure(error: string) {
-      this.log.error(`Error connecting to wiser - ${error} Will retry in ${this.retryDelay / 1000}s`);
-      setTimeout(() => {
-          this.start();
-      }, this.retryDelay);
-      this.retryDelay = this.retryDelay * 2;
-  }
+    handleConnectFailure(error: string) {
+        this.log.error(`Error connecting to wiser - ${error} Will retry in ${this.retryDelay / 1000}s`);
+        setTimeout(() => {
+            this.start();
+        }, this.retryDelay);
+        this.retryDelay = this.retryDelay * 2;
+    }
 
-  sendAuth(socket: Socket, authKey: string) {
-      this.log.debug('Authenticating');
-      socket.write(`<cbus_auth_cmd value="${authKey}" cbc_version="3.7.0" count="0"/>`);
-  }
+    sendAuth(socket: Socket, authKey: string) {
+        this.log.debug('Authenticating');
+        socket.write(`<cbus_auth_cmd value="${authKey}" cbc_version="3.7.0" count="0"/>`);
+    }
 
-  async getAuthKey(): Promise<string> {
-      const url = `${this.wiserURL}clipsal/resources/projectorkey.xml`;
-      const response = await this.got(url);
-      this.log.debug(`Auth response body: ${response.body}`);
-      const parser = new this.xml2js.Parser();
-      return parser.parseStringPromise(response.body).then((result) => {
-          return result.cbus_auth_data.$.value;
-      });
-  }
+    async getAuthKey(): Promise<string> {
+        const url = `${this.wiserURL}clipsal/resources/projectorkey.xml`;
+        const response = await this.got(url);
+        this.log.debug(`Auth response body: ${response.body}`);
+        const parser = new this.xml2js.Parser();
+        return parser.parseStringPromise(response.body).then((result) => {
+            return result.cbus_auth_data.$.value;
+        });
+    }
 
-  async connectSocket(): Promise<Socket> {
-      const socket = new net.Socket();
-      socket.connect(this.port, this.address);
-      return new Promise((resolve, reject) => {
-          socket.on('connect', () => {
-              this.retryDelay = this.initialRetryDelay;
-              this.log.info(`Connected to wiser ${this.address}:${this.port}`);
-              resolve(socket);
-          });
-          socket.on('error', (error) => {
-              reject(error);
-              this.socket = null;
-          });
-      });
-  }
+    async connectSocket(): Promise<Socket> {
+        const socket = new net.Socket();
+        socket.connect(this.port, this.address);
+        return new Promise((resolve, reject) => {
+            socket.on('connect', () => {
+                this.retryDelay = this.initialRetryDelay;
+                this.log.info(`Connected to wiser ${this.address}:${this.port}`);
+                resolve(socket);
+            });
+            socket.on('error', (error) => {
+                reject(error);
+                this.socket = null;
+            });
+        });
+    }
 
-  async getProject(): Promise<[WiserProjectGroup]> {
-      const url = `${this.wiserURL}clipsal/resources/project.xml`;
-      const response = await this.got(url);
-      this.log.debug(`project response body: ${response.body}`);
-      const parser = new this.xml2js.Parser();
-      return parser.parseStringPromise(response.body).then((result) => {
-          return this.parseProject(result.Project);
-      });
-  }
+    async getProject(): Promise<[WiserProjectGroup]> {
+        const url = `${this.wiserURL}clipsal/resources/project.xml`;
+        const response = await this.got(url);
+        this.log.debug(`project response body: ${response.body}`);
+        const parser = new this.xml2js.Parser();
+        return parser.parseStringPromise(response.body).then((result) => {
+            return this.parseProject(result.Project);
+        });
+    }
 
-  private parseProject(project): WiserProjectGroup[] {
-      const widgets = project.Widgets[0]['widget'];
+    private parseProject(project): WiserProjectGroup[] {
+        const widgets = project.Widgets[0]['widget'];
 
-      const groups: WiserProjectGroup[] = [];
+        const groups: WiserProjectGroup[] = [];
 
-      for (const widget of widgets) {
-          const params = widget.params;
-          const app = params[0].$.app;
-          const ga = params[0].$.ga;
-          const name = params[0].$.label;
-          const network = params[0].$.network;
+        for (const widget of widgets) {
+            const params = widget.params;
+            const app = params[0].$.app;
+            const ga = params[0].$.ga;
+            const name = params[0].$.label;
+            const network = params[0].$.network;
 
-          if ('undefined' !== typeof app &&
-        'undefined' !== typeof ga &&
-        'undefined' !== typeof name &&
-        'undefined' !== typeof network) {
+            if ('undefined' !== typeof app &&
+                'undefined' !== typeof ga &&
+                'undefined' !== typeof name &&
+                'undefined' !== typeof network) {
 
-              let deviceType: DeviceType;
+                let deviceType: DeviceType;
 
-              switch (widget.$.type) {
-                  case '1':
-                      deviceType = DeviceType.dimmer;
-                      break;
-                  case '10':
-                      deviceType = DeviceType.blind;
-                      break;
-                  case '25':
-                      deviceType = DeviceType.fan;
-                      break;
-                  default:
-                      deviceType = DeviceType.switch;
-              }
+                switch (widget.$.type) {
+                    case '1':
+                        deviceType = DeviceType.dimmer;
+                        break;
+                    case '10':
+                        deviceType = DeviceType.blind;
+                        break;
+                    case '25':
+                        deviceType = DeviceType.fan;
+                        break;
+                    default:
+                        deviceType = DeviceType.switch;
+                }
 
-              const fanSpeeds: number[] = [];
-              if (deviceType === DeviceType.fan) {
-                  const speeds = params[0].$.speeds.split('|');
-                  for (const speed of speeds) {
-                      if (!isNaN(speed)) {
-                          fanSpeeds.push(parseInt(speed));
-                      }
-                      fanSpeeds.sort();
-                  }
-              }
-              const group = new WiserProjectGroup(name, new AccessoryAddress(network, ga), deviceType, fanSpeeds, app);
-              this.log.debug(`New group ${group.address.network}:${group.address.groupAddress} of type ${group.deviceType}`);
-              groups.push(group);
-          }
-      }
+                const fanSpeeds: number[] = [];
+                if (deviceType === DeviceType.fan) {
+                    const speeds = params[0].$.speeds.split('|');
+                    for (const speed of speeds) {
+                        if (!isNaN(speed)) {
+                            fanSpeeds.push(parseInt(speed));
+                        }
+                        fanSpeeds.sort();
+                    }
+                }
+                const group = new WiserProjectGroup(name, new AccessoryAddress(network, ga), deviceType, fanSpeeds, app);
+                this.log.debug(`New group ${group.address.network}:${group.address.groupAddress} of type ${group.deviceType}`);
+                groups.push(group);
+            }
+        }
 
-      return groups;
-  }
+        return groups;
+    }
 
-  handleWiserData(data) {
-      const resp = `<response>${data.toString()}</response>`;
-      this.log.debug(resp);
-      const dataParser = new this.xml2js.Parser();
-      dataParser.parseStringPromise(resp).then((result) => {
-          const event = result.response.cbus_event;
-          const response = result.response.cbus_resp;
-          let group: number;
-          let level: number;
-          let levels: [string];
-          if ('undefined' !== typeof event) {
-              for (let i = 0; i < event.length; i++) {
-                  const currentEvent = event[i].$;
-                  const eventName = currentEvent.name;
-                  switch (eventName) {
-                      case 'cbusSetLevel':
-                          group = parseInt(currentEvent.group);
-                          level = parseInt(currentEvent.level);
-                          this.log.debug(`Setting ${group} to ${level}`);
-                          this.emit('groupSet', new GroupSetEvent(group, level));
-                          break;
-                  }
-              }
-          }
+    handleWiserData(data) {
+        const resp = `<response>${data.toString()}</response>`;
+        this.log.debug(resp);
+        const dataParser = new this.xml2js.Parser();
+        dataParser.parseStringPromise(resp).then((result) => {
+            const event = result.response.cbus_event;
+            const response = result.response.cbus_resp;
+            let group: number;
+            let level: number;
+            let levels: [string];
+            if ('undefined' !== typeof event) {
+                for (let i = 0; i < event.length; i++) {
+                    const currentEvent = event[i].$;
+                    const eventName = currentEvent.name;
+                    switch (eventName) {
+                        case 'cbusSetLevel':
+                            group = parseInt(currentEvent.group);
+                            level = parseInt(currentEvent.level);
+                            this.log.debug(`Setting ${group} to ${level}`);
+                            this.emit('groupSet', new GroupSetEvent(group, level));
+                            break;
+                    }
+                }
+            }
 
-          if ('undefined' !== typeof response) {
-              const command = response[0].$.command;
-              switch (command) {
-                  case 'cbusGetLevel':
-                      levels = response[0].$.level.split(',');
-                      for (let i = 0; i < levels.length - 1; i++) {
-                          const level = parseInt(levels[i]);
-                          this.log.debug(`Setting level ${level} for ${i}`);
-                          this.emit('groupSetScan', new GroupSetEvent(i, level));
-                      }
-              }
-          }
-      })
-          .catch((error) => {
-              this.log.error(`Error parsing response - ${error}`);
-          });
-  }
+            if ('undefined' !== typeof response) {
+                const command = response[0].$.command;
+                switch (command) {
+                    case 'cbusGetLevel':
+                        levels = response[0].$.level.split(',');
+                        for (let i = 0; i < levels.length - 1; i++) {
+                            const level = parseInt(levels[i]);
+                            this.log.debug(`Setting level ${level} for ${i}`);
+                            this.emit('groupSetScan', new GroupSetEvent(i, level));
+                        }
+                }
+            }
+        })
+            .catch((error) => {
+                this.log.error(`Error parsing response - ${error}`);
+            });
+    }
 
-  setGroupLevel(address: AccessoryAddress, level: number, ramp = 0) { // eslint-disable-next-line max-len
-      const cmd = `<cbus_cmd app="56" command="cbusSetLevel" network="${address.network}" numaddresses="1" addresses="${address.groupAddress}" levels="${level}" ramps="${ramp}"/>`;
-      this.log.debug(cmd);
-    this.socket!.write(cmd);
-  }
+    setGroupLevel(address: AccessoryAddress, level: number, ramp = 0) { // eslint-disable-next-line max-len
+        const cmd = `<cbus_cmd app="56" command="cbusSetLevel" network="${address.network}" numaddresses="1" addresses="${address.groupAddress}" levels="${level}" ramps="${ramp}"/>`;
+        this.log.debug(cmd);
+        if (null !== this.socket) {
+            this.socket!.write(cmd);
+        }
+    }
 
-  private getLevels() {
-    this.socket!.write('<cbus_cmd app="0x38" command="cbusGetLevel" numaddresses="256" />');
-  }
+    private getLevels() {
+        this.socket!.write('<cbus_cmd app="0x38" command="cbusGetLevel" numaddresses="256" />');
+    }
 }
 
 /*var Wiser = function (log, address, username, password, port) {

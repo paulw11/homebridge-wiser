@@ -77,6 +77,7 @@ export class WiserBlind extends WiserAccessory {
     setStatusFromEvent(groupSetEvent: GroupSetEvent) {
 
         this.currentPosition = this.toHomeKitLevel(groupSetEvent.level);
+        this.targetPosition = this.currentPosition;
 
         this.platform.log.debug(`Update blind position ${this.currentPosition}`);
         this.updateState();
