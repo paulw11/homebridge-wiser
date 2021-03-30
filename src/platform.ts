@@ -89,7 +89,7 @@ export class WiserPlatform implements DynamicPlatformPlugin {
                 if (!this.isIgnored(new AccessoryAddress(254, groupSetEvent.groupAddress))) {
                     this.log.warn(`Could not find accessory to handle event for ${groupSetEvent.groupAddress}`);
                     this.log.warn(
-                        `Consider adding \n'{\n"network":254,\n"ga":${groupSetEvent.groupAddress}\n}\n to the "ignoredGAs" config`,
+                        `Consider adding \n{\n"network":254,\n"ga":${groupSetEvent.groupAddress}\n}\n to the "ignoredGAs" config`,
                     );
                 }
             }
