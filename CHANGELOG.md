@@ -1,6 +1,8 @@
-# Changelog
+# Change log
 
-## Next
+## 2.0.2
+
+- Handle network disconnection without throwing exceptions
 
 ## 2.0.1
 
