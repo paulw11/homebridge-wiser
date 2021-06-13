@@ -1,6 +1,6 @@
 {
   "name": "homebridge-wiser",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "C-Bus Wiser plugin for homebridge: https://github.com/homebridge/homebridge",
   "main": "dist/index.js",
   "license": "MIT",
@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "got": "^9.6.0",
+    "node-xml-stream": "^1.0.2",
     "xml2js": "^0.4.23"
   },
   "funding": [
