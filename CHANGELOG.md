@@ -1,5 +1,9 @@
 # Change log
 
+## 2.1.0
+
+- Use stream based XML Parsing to avoid problems when data from the Wiser is spread across mutiple stream reads.
+
 ## 2.0.2
 
 - Handle network disconnection without throwing exceptions
