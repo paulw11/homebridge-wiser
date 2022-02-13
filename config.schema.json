@@ -28,7 +28,7 @@
 				"required": true
 			},
 			"wiserPort": {
-				"title": "Wiser admin password",
+				"title": "Wiser port password",
 				"type": "integer",
 				"default": 8888,
 				"required": true
